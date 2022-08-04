@@ -9,10 +9,14 @@ import "hardhat-deploy"
 import "solidity-coverage"
 import { HardhatUserConfig } from "hardhat/types"
 
-const RINKEBY_RPC_URL = process.env.RINKEBY_RPC_URL || "https://eth-rinkeby"
+const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL || "https://eth-goerli"
+const BSC_TESTNET_RPC_URL =
+    process.env.BSC_TESTNET_RPC_URL || "https://bsc-testnet"
+
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0xkey"
 
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "key"
+const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY || "key"
 
 const COINMARKETCAP_API_KEY = process.env.COINMARKETCAP_API_KEY || "key"
 
@@ -27,9 +31,14 @@ const config: HardhatUserConfig = {
         localhost: {
             chainId: 31337,
         },
-        rinkeby: {
-            chainId: 4,
-            url: RINKEBY_RPC_URL,
+        goerli: {
+            chainId: 5,
+            url: GOERLI_RPC_URL,
+            accounts: [PRIVATE_KEY],
+        },
+        bscTestnet: {
+            chainId: 97,
+            url: BSC_TESTNET_RPC_URL,
             accounts: [PRIVATE_KEY],
         },
     },
@@ -52,7 +61,10 @@ const config: HardhatUserConfig = {
         timeout: 300 * 1000,
     },
     etherscan: {
-        apiKey: ETHERSCAN_API_KEY,
+        apiKey: {
+            goerli: ETHERSCAN_API_KEY,
+            bscTestnet: BSCSCAN_API_KEY,
+        },
     },
 }
 
