@@ -1,17 +1,43 @@
-import { ethers, getNamedAccounts } from "hardhat"
+import { ethers, getNamedAccounts, network } from "hardhat"
 import { IERC20, IUniswapV2Router02 } from "../../typechain-types"
 
 const WFTM_ADDRESS = "0xf1277d1Ed8AD466beddF92ef448A132661956621"
-const WFTM_AMOUNT = "385032617"
 
 const USDT_ADDRESS = "0x7d43AABC515C356145049227CeE54B608342c0ad"
-const USDT_AMOUNT = "200000000"
 
 const SPOOKY_SWAP_CONTRACT = "0xa6AD18C2aC47803E193F75c3677b14BF19B94883"
 
-export async function addLiquidityUSDT_WFTM() {
+export async function main() {
     console.log("---Add liquidity to USDT-WFTM pool in Spooky Swap---")
+
+    if (network.name !== "ftmTestnet") {
+        console.log(
+            "Must be on Fantom Testnet to add liquidity to Unbound Finance"
+        )
+        return
+    }
+
     const { deployer } = await getNamedAccounts()
+
+    // Get the Spooky Swap router contract
+    const spookySwap: IUniswapV2Router02 = await ethers.getContractAt(
+        "IUniswapV2Router02",
+        SPOOKY_SWAP_CONTRACT,
+        deployer
+    )
+
+    // Calculate amount of USDC and USDC to stake to maintain 1-1 liquidity ratio
+    console.log("Getting quote for providing USDT-WFTM liquidity")
+    const USDT_AMOUNT = "9000000"
+    const TUSDTRequired = await spookySwap.quote(
+        USDT_AMOUNT,
+        USDT_ADDRESS,
+        WFTM_ADDRESS
+    )
+    const WFTM_AMOUNT = TUSDTRequired.toString()
+    console.log(
+        `Must provide ${USDT_AMOUNT} of USDT and ${WFTM_AMOUNT} of WFTM`
+    )
 
     // Approve Spooky Swap to use our WFTM and USDT
     const WFTM: IERC20 = await ethers.getContractAt(
@@ -35,12 +61,6 @@ export async function addLiquidityUSDT_WFTM() {
     console.log("USDT approved!")
 
     // Add liquidity to USDT - WFTM pool in Spooky Swap
-    const spookySwap: IUniswapV2Router02 = await ethers.getContractAt(
-        "IUniswapV2Router02",
-        SPOOKY_SWAP_CONTRACT,
-        deployer
-    )
-
     console.log("Adding liquidity to USDT-WFTM pool...")
     const txResponse = await spookySwap.addLiquidity(
         WFTM_ADDRESS,
@@ -49,15 +69,22 @@ export async function addLiquidityUSDT_WFTM() {
         USDT_AMOUNT,
         1,
         1,
-        "0x96564B0744A524B792B4dD61340C9D44ed74ff52",
-        1760066100,
+        deployer,
+        Math.floor(Date.now() / 1000) + 10 * 60, // 10min into the future
         {
             gasLimit: 2100000,
             gasPrice: 2000000000,
         }
     )
-    console.log("Sent liquidity tx...")
+    console.log("Sent liquidity tx...", txResponse.hash)
     await txResponse.wait(1)
 
     console.log("Added liquidity to USDT-WFTM pool!")
 }
+
+main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.log(error)
+        process.exit(1)
+    })

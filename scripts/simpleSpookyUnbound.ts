@@ -47,11 +47,11 @@ async function main() {
     const txResponse = await SimpleSpookyUnbound.spookyUnbound(
         FTM_TESTNET_CONTRACT,
         USDT_ADDRESS,
-        USDT_AMOUNT, // Send 20 USDC Tokens
+        USDT_AMOUNT, // Send 10 USDT
         4002, // FTM Testnet
         1000000, // 100% Slippage since testnet pools tend to be imbalanced
         1, // Pool-based liquidity bridge
-        ["0x96564B0744A524B792B4dD61340C9D44ed74ff52"],
+        [deployer],
         ["9000000"],
         {
             gasLimit: 300000,
