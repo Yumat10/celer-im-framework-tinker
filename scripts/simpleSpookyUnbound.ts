@@ -14,11 +14,11 @@ import {
  * Some fees must be paid to the SGN when routing messages
  */
 
-const GOERLI_CONTRACT = "0x99E59649f7a49781604E3b35E9dFC509181CB13C"
-const FTM_TESTNET_CONTRACT = "0x1b27484F478B01c9771267792D4e2C4247EcF34B"
+const GOERLI_CONTRACT = "0xD703933b591d2304F6e4C88971E0A46e019f839a"
+const FTM_TESTNET_CONTRACT = "0x964CCAf6487466F64Df2048c60816E079008C592"
 
 const USDT_ADDRESS = "0xf4B2cbc3bA04c478F0dC824f4806aC39982Dce73"
-const USDT_AMOUNT = "10000000"
+const USDT_AMOUNT = "5500000"
 
 async function main() {
     console.log("---SimpleSpookyUnbound---")
@@ -52,7 +52,7 @@ async function main() {
         1000000, // 100% Slippage since testnet pools tend to be imbalanced
         1, // Pool-based liquidity bridge
         [deployer],
-        ["9000000"],
+        ["5000000"],
         {
             gasLimit: 300000,
             value: ethers.utils.parseEther("0.001"), // Fee to pay SGN for routing fees

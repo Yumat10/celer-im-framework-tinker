@@ -1,14 +1,15 @@
 import { ethers, getNamedAccounts, network } from "hardhat"
 import { IERC20, IUniswapV2Router02 } from "../../typechain-types"
 
-const WFTM_ADDRESS = "0xf1277d1Ed8AD466beddF92ef448A132661956621"
+const TUSDC_ADDRESS = "0x0C520Bc3E90D28212bc5c9904B73425c2c58c8E5"
 
 const USDT_ADDRESS = "0x7d43AABC515C356145049227CeE54B608342c0ad"
 
 const SPOOKY_SWAP_CONTRACT = "0xa6AD18C2aC47803E193F75c3677b14BF19B94883"
 
+// Provide liquidity to USDT-TUSDC pool in Spooky Swap
 export async function main() {
-    console.log("---Add liquidity to USDT-WFTM pool in Spooky Swap---")
+    console.log("---Add liquidity to USDT-TUSDC pool in Spooky Swap---")
 
     if (network.name !== "ftmTestnet") {
         console.log(
@@ -26,29 +27,32 @@ export async function main() {
         deployer
     )
 
-    // Calculate amount of USDC and USDC to stake to maintain 1-1 liquidity ratio
-    console.log("Getting quote for providing USDT-WFTM liquidity")
-    const USDT_AMOUNT = "9000000"
-    const TUSDTRequired = await spookySwap.quote(
+    // Calculate amount of USDC and TUSDC to stake to maintain 1-1 liquidity ratio
+    console.log("Getting quote for providing USDT-TUSDT liquidity")
+    const USDT_AMOUNT = "500000"
+    const TUSDCRequired = await spookySwap.quote(
         USDT_AMOUNT,
         USDT_ADDRESS,
-        WFTM_ADDRESS
+        TUSDC_ADDRESS
     )
-    const WFTM_AMOUNT = TUSDTRequired.toString()
+    const TUSDC_AMOUNT = TUSDCRequired.toString()
     console.log(
-        `Must provide ${USDT_AMOUNT} of USDT and ${WFTM_AMOUNT} of WFTM`
+        `Must provide ${USDT_AMOUNT} of USDT and ${TUSDC_AMOUNT} of TUSDC`
     )
 
-    // Approve Spooky Swap to use our WFTM and USDT
-    const WFTM: IERC20 = await ethers.getContractAt(
+    // Approve Spooky Swap to use our TUSDT and USDT
+    const TUSDC: IERC20 = await ethers.getContractAt(
         "IERC20",
-        WFTM_ADDRESS,
+        TUSDC_ADDRESS,
         deployer
     )
-    console.log("Approving WFTM...")
-    const WFTMApprovalTx = await WFTM.approve(SPOOKY_SWAP_CONTRACT, WFTM_AMOUNT)
-    await WFTMApprovalTx.wait(1)
-    console.log("WFTM approved!")
+    console.log("Approving TUSDC...")
+    const TUSDCApprovalTx = await TUSDC.approve(
+        SPOOKY_SWAP_CONTRACT,
+        TUSDC_AMOUNT
+    )
+    await TUSDCApprovalTx.wait(1)
+    console.log("TUSDC approved!")
 
     const USDT: IERC20 = await ethers.getContractAt(
         "IERC20",
@@ -60,12 +64,12 @@ export async function main() {
     await USDTApprovalTx.wait(1)
     console.log("USDT approved!")
 
-    // Add liquidity to USDT - WFTM pool in Spooky Swap
-    console.log("Adding liquidity to USDT-WFTM pool...")
+    // Add liquidity to USDT - TUSDC pool in Spooky Swap
+    console.log("Adding liquidity to USDT-TUSDC pool...")
     const txResponse = await spookySwap.addLiquidity(
-        WFTM_ADDRESS,
+        TUSDC_ADDRESS,
         USDT_ADDRESS,
-        WFTM_AMOUNT,
+        TUSDC_AMOUNT,
         USDT_AMOUNT,
         1,
         1,
@@ -79,7 +83,7 @@ export async function main() {
     console.log("Sent liquidity tx...", txResponse.hash)
     await txResponse.wait(1)
 
-    console.log("Added liquidity to USDT-WFTM pool!")
+    console.log("Added liquidity to USDT-TUSDT pool!")
 }
 
 main()

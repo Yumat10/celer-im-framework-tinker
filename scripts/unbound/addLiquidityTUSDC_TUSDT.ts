@@ -7,6 +7,7 @@ const TUSDT_ADDRESS = "0x5834f0964Fcab742C6E7a1888b93f6F76DBB47f5"
 
 const UNBOUND_ROUTER_CONTRACT = "0x65278880bDBBB1E020f2b871Da89b1dDD6639D08"
 
+// Provide liquidity to TUSDT-TUSDC pool in Unbound Finance
 export async function main() {
     console.log("---Add liquidity to TUSDC-TUSDT pool in Unbound Finance---")
 
