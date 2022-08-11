@@ -22,7 +22,16 @@ const COINMARKETCAP_API_KEY = process.env.COINMARKETCAP_API_KEY || "key"
 
 /** @type import('hardhat/config').HardhatUserConfig */
 const config: HardhatUserConfig = {
-    solidity: "0.8.9",
+    solidity: {
+        compilers: [
+            {
+                version: "0.4.18",
+            },
+            {
+                version: "0.8.9",
+            },
+        ],
+    },
     defaultNetwork: "hardhat",
     networks: {
         hardhat: {
@@ -39,6 +48,11 @@ const config: HardhatUserConfig = {
         bscTestnet: {
             chainId: 97,
             url: BSC_TESTNET_RPC_URL,
+            accounts: [PRIVATE_KEY],
+        },
+        ftmTestnet: {
+            chainId: 4002,
+            url: "https://rpc.testnet.fantom.network",
             accounts: [PRIVATE_KEY],
         },
     },

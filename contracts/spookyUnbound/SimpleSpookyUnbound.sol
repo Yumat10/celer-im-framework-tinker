@@ -8,7 +8,9 @@ import "sgn-v2-contracts/contracts/message/libraries/MessageSenderLib.sol";
 import "sgn-v2-contracts/contracts/message/libraries/MsgDataTypes.sol";
 import "sgn-v2-contracts/contracts/message/interfaces/IMessageReceiverApp.sol";
 
-contract SimpleBatchTransfer {
+import "../interfaces/IUniswapV2Router02.sol";
+
+contract SimpleSpookyUnbound {
     using SafeERC20 for IERC20;
 
     struct TransferRequest {
@@ -28,6 +30,24 @@ contract SimpleBatchTransfer {
         uint64 nonce;
         TransferStatus status;
     }
+
+    // Spooky swap addresses
+    address constant SPOOKY_SWAP_CONTRACT =
+        0xa6AD18C2aC47803E193F75c3677b14BF19B94883;
+
+    address constant USDT_ADDRESS = 0x7d43AABC515C356145049227CeE54B608342c0ad;
+    address constant WRAPPED_FTM_ADDRESS =
+        0xf1277d1Ed8AD466beddF92ef448A132661956621;
+
+    // Unbound finance addresses
+    address constant UNBOUND_ROUTER_CONTRACT =
+        0x65278880bDBBB1E020f2b871Da89b1dDD6639D08;
+
+    address constant TUSDT_ADDRESS = 0x5834f0964Fcab742C6E7a1888b93f6F76DBB47f5;
+    uint256 constant TUSDT_AMOUNT = 50000;
+
+    address constant TUSDC_ADDRESS = 0x0C520Bc3E90D28212bc5c9904B73425c2c58c8E5;
+    uint256 constant TUSDC_AMOUNT = 50000;
 
     uint64 nonce;
     address messageBus;
@@ -52,7 +72,7 @@ contract SimpleBatchTransfer {
         messageBus = _messageBus;
     }
 
-    function batchTransfer(
+    function spookyUnbound(
         address _receiver, // destination contract address
         address _token, // the input token
         uint256 _amount, // the input token amount
@@ -112,31 +132,45 @@ contract SimpleBatchTransfer {
             (TransferRequest)
         );
 
-        // Distribute the funds transfered
-        for (uint256 i = 0; i < transfer.accounts.length; i++) {
-            IERC20(_token).safeTransfer(
-                transfer.accounts[i],
-                transfer.amounts[i]
-            );
-        }
+        // Spooky swap
+        address owner = transfer.accounts[0];
+        uint256 amount = transfer.amounts[0];
 
-        // Chained message
-        bytes memory message = abi.encode("Chained message from BSC Testnet");
-        MessageSenderLib.sendMessage(
-            _sender,
-            _srcChainId,
-            message,
-            messageBus,
-            msg.value
+        // Approve token transfer
+        IERC20(USDT_ADDRESS).approve(SPOOKY_SWAP_CONTRACT, amount);
+
+        // Swap tokens
+        IUniswapV2Router02 SpookySwap = IUniswapV2Router02(
+            SPOOKY_SWAP_CONTRACT
+        );
+        address[] memory path = new address[](2);
+        path[0] = USDT_ADDRESS;
+        path[1] = WRAPPED_FTM_ADDRESS;
+        uint256 deadline = block.timestamp + 300;
+        SpookySwap.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+            amount,
+            0,
+            path,
+            owner,
+            deadline
         );
 
-        emit ExecutedMessageWithTransfer(
-            _sender,
-            _token,
-            _amount,
-            _srcChainId,
-            _message,
-            _executor
+        // Unbound Finance
+
+        // Approve TUSDT and TUSDC tokens for transfer
+        IERC20(TUSDT_ADDRESS).approve(UNBOUND_ROUTER_CONTRACT, TUSDT_AMOUNT);
+        IERC20(TUSDC_ADDRESS).approve(UNBOUND_ROUTER_CONTRACT, TUSDC_AMOUNT);
+
+        // Add liquidity to TUSDT-TUSDC pool on Unbound
+        IUniswapV2Router02(UNBOUND_ROUTER_CONTRACT).addLiquidity(
+            TUSDC_ADDRESS,
+            TUSDT_ADDRESS,
+            TUSDC_AMOUNT,
+            TUSDT_AMOUNT,
+            1,
+            1,
+            owner, // Send LP token to the contract owner
+            1760066100
         );
 
         // Indicate successful handling of message

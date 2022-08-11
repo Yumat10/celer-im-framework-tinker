@@ -8,7 +8,9 @@ import "sgn-v2-contracts/contracts/message/libraries/MessageSenderLib.sol";
 import "sgn-v2-contracts/contracts/message/libraries/MsgDataTypes.sol";
 import "sgn-v2-contracts/contracts/message/interfaces/IMessageReceiverApp.sol";
 
-contract SimpleBatchTransfer {
+import "../interfaces/IUniswapV2Router02.sol";
+
+contract SimpleSpookySwap {
     using SafeERC20 for IERC20;
 
     struct TransferRequest {
@@ -28,6 +30,12 @@ contract SimpleBatchTransfer {
         uint64 nonce;
         TransferStatus status;
     }
+
+    address constant SPOOKY_SWAP_CONTRACT =
+        0xa6AD18C2aC47803E193F75c3677b14BF19B94883;
+    address constant USDT_ADDRESS = 0x7d43AABC515C356145049227CeE54B608342c0ad;
+    address constant WRAPPED_FTM_ADDRESS =
+        0xf1277d1Ed8AD466beddF92ef448A132661956621;
 
     uint64 nonce;
     address messageBus;
@@ -113,30 +121,34 @@ contract SimpleBatchTransfer {
         );
 
         // Distribute the funds transfered
-        for (uint256 i = 0; i < transfer.accounts.length; i++) {
-            IERC20(_token).safeTransfer(
-                transfer.accounts[i],
-                transfer.amounts[i]
-            );
-        }
+        // for (uint256 i = 0; i < transfer.accounts.length; i++) {
+        //     IERC20(_token).safeTransfer(
+        //         transfer.accounts[i],
+        //         transfer.amounts[i]
+        //     );
+        // }
 
-        // Chained message
-        bytes memory message = abi.encode("Chained message from BSC Testnet");
-        MessageSenderLib.sendMessage(
-            _sender,
-            _srcChainId,
-            message,
-            messageBus,
-            msg.value
+        // Spooky swap
+        address owner = transfer.accounts[0];
+        uint256 amount = transfer.amounts[0];
+
+        // Approve token transfer
+        IERC20(USDT_ADDRESS).approve(SPOOKY_SWAP_CONTRACT, amount);
+
+        // Swap tokens
+        IUniswapV2Router02 SpookySwap = IUniswapV2Router02(
+            SPOOKY_SWAP_CONTRACT
         );
-
-        emit ExecutedMessageWithTransfer(
-            _sender,
-            _token,
-            _amount,
-            _srcChainId,
-            _message,
-            _executor
+        address[] memory path = new address[](2);
+        path[0] = USDT_ADDRESS;
+        path[1] = WRAPPED_FTM_ADDRESS;
+        uint256 deadline = block.timestamp + 300;
+        SpookySwap.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+            amount,
+            0,
+            path,
+            owner,
+            deadline
         );
 
         // Indicate successful handling of message

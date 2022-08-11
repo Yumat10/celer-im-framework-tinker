@@ -8,7 +8,9 @@ import "sgn-v2-contracts/contracts/message/libraries/MessageSenderLib.sol";
 import "sgn-v2-contracts/contracts/message/libraries/MsgDataTypes.sol";
 import "sgn-v2-contracts/contracts/message/interfaces/IMessageReceiverApp.sol";
 
-contract SimpleBatchTransfer {
+import "../interfaces/IUniswapV2Router02.sol";
+
+contract SimpleUnboundLiquidity {
     using SafeERC20 for IERC20;
 
     struct TransferRequest {
@@ -29,18 +31,19 @@ contract SimpleBatchTransfer {
         TransferStatus status;
     }
 
+    address immutable OWNER_ADDRESS;
+
+    address constant UNBOUND_ROUTER_CONTRACT =
+        0x65278880bDBBB1E020f2b871Da89b1dDD6639D08;
+
+    address constant TUSDT_ADDRESS = 0x5834f0964Fcab742C6E7a1888b93f6F76DBB47f5;
+    uint256 constant TUSDT_AMOUNT = 50000;
+
+    address constant TUSDC_ADDRESS = 0x0C520Bc3E90D28212bc5c9904B73425c2c58c8E5;
+    uint256 constant TUSDC_AMOUNT = 50000;
+
     uint64 nonce;
     address messageBus;
-
-    event SuccessfulExecuteMessage(uint64 src_chainID, address sender);
-    event ExecutedMessageWithTransfer(
-        address _sender,
-        address _token,
-        uint256 _amount,
-        uint64 _srcChainId,
-        bytes _message,
-        address _executor
-    );
 
     // Ensure that only the designated accounts (message bus) can call execute
     modifier onlyMessageBus() {
@@ -50,9 +53,10 @@ contract SimpleBatchTransfer {
 
     constructor(address _messageBus) {
         messageBus = _messageBus;
+        OWNER_ADDRESS = msg.sender;
     }
 
-    function batchTransfer(
+    function simpleUnboundLiquidity(
         address _receiver, // destination contract address
         address _token, // the input token
         uint256 _amount, // the input token amount
@@ -78,7 +82,7 @@ contract SimpleBatchTransfer {
             })
         );
 
-        // Send the message
+        // Send the message via Celer
         MessageSenderLib.sendMessageWithTransfer(
             _receiver,
             _token,
@@ -120,96 +124,27 @@ contract SimpleBatchTransfer {
             );
         }
 
-        // Chained message
-        bytes memory message = abi.encode("Chained message from BSC Testnet");
-        MessageSenderLib.sendMessage(
-            _sender,
-            _srcChainId,
-            message,
-            messageBus,
-            msg.value
-        );
+        // NOTE: Celer and Unbound use different versions of tokens in Fantom Testnet
 
-        emit ExecutedMessageWithTransfer(
-            _sender,
-            _token,
-            _amount,
-            _srcChainId,
-            _message,
-            _executor
+        // Unbound Finance
+
+        // Approve TUSDT and TUSDC tokens for transfer
+        IERC20(TUSDT_ADDRESS).approve(UNBOUND_ROUTER_CONTRACT, TUSDT_AMOUNT);
+        IERC20(TUSDC_ADDRESS).approve(UNBOUND_ROUTER_CONTRACT, TUSDC_AMOUNT);
+
+        // Add liquidity to TUSDT-TUSDC pool on Unbound
+        IUniswapV2Router02(UNBOUND_ROUTER_CONTRACT).addLiquidity(
+            TUSDC_ADDRESS,
+            TUSDT_ADDRESS,
+            TUSDC_AMOUNT,
+            TUSDT_AMOUNT,
+            1,
+            1,
+            OWNER_ADDRESS, // Send LP token to the contract owner
+            1760066100
         );
 
         // Indicate successful handling of message
-        return IMessageReceiverApp.ExecutionStatus.Success;
-    }
-
-    function executeMessage(
-        address _sender,
-        uint64 _chainID,
-        bytes memory _message,
-        address //executor
-    )
-        external
-        payable
-        onlyMessageBus
-        returns (IMessageReceiverApp.ExecutionStatus)
-    {
-        // TransferReceipt memory receipt = abi.decode((_message), (TransferReceipt));
-        emit SuccessfulExecuteMessage(_chainID, _sender);
-        return IMessageReceiverApp.ExecutionStatus.Success;
-    }
-
-    function executeMessageWithTransferRefund(
-        address _token,
-        uint256 _amount,
-        bytes calldata _message,
-        address //_executor
-    )
-        external
-        payable
-        onlyMessageBus
-        returns (IMessageReceiverApp.ExecutionStatus)
-    {
-        TransferRequest memory transfer = abi.decode(
-            (_message),
-            (TransferRequest)
-        );
-        IERC20(_token).safeTransfer(transfer.sender, _amount);
-        return IMessageReceiverApp.ExecutionStatus.Success;
-    }
-
-    function executeMessageWithTransferFallback(
-        address _sender,
-        address _token,
-        uint256 _amount,
-        uint64 _srcChainId,
-        bytes calldata _message,
-        address //_executor
-    )
-        external
-        payable
-        // override
-        onlyMessageBus
-        returns (IMessageReceiverApp.ExecutionStatus)
-    {
-        TransferRequest memory transfer = abi.decode(
-            (_message),
-            (TransferRequest)
-        );
-        IERC20(_token).safeTransfer(transfer.sender, _amount);
-        bytes memory message = abi.encode(
-            TransferReceipt({
-                nonce: transfer.nonce,
-                status: TransferStatus.Fail
-            })
-        );
-        MessageSenderLib.sendMessage(
-            _sender,
-            _srcChainId,
-            message,
-            messageBus,
-            msg.value
-        );
         return IMessageReceiverApp.ExecutionStatus.Success;
     }
 }
