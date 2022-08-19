@@ -30,6 +30,9 @@ const config: HardhatUserConfig = {
             {
                 version: "0.8.9",
             },
+            {
+                version: "0.8.10",
+            },
         ],
     },
     defaultNetwork: "hardhat",
@@ -39,6 +42,7 @@ const config: HardhatUserConfig = {
         },
         localhost: {
             chainId: 31337,
+            url: "http://127.0.0.1:8545/",
         },
         goerli: {
             chainId: 5,
