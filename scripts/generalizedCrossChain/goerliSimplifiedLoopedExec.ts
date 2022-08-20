@@ -1,7 +1,7 @@
 import { AbiCoder } from "@ethersproject/abi"
 import { ethers, getNamedAccounts } from "hardhat"
-import { SimplifiedLoopedExec } from "../typechain-types"
-import { SimpleToContract } from "../typechain-types/contracts/generalizedCrossChain/goerli/SimpleToContract"
+import { SimplifiedLoopedExec } from "../../typechain-types"
+import { SimpleToContract } from "../../typechain-types/contracts/generalizedCrossChain/goerli/SimpleToContract"
 
 // Contract address: 0x81966FaC48E76910594Db12878d5d43eD6b37598
 
