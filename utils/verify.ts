@@ -8,7 +8,7 @@ export const verify = async (contractAddress: string, args: any[]) => {
             address: contractAddress,
             constructorArguments: args,
         })
-        console.log("Contract verified...")
+        console.log("Contract verified!")
     } catch (error: any) {
         if (error.message.toLowerCase().includes("already verified")) {
             console.log("Already Verified!")

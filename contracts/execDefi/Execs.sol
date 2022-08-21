@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.10;
+pragma solidity 0.8.9;
 
-import "../../interfaces/IERC20.sol";
-
-contract SimplifiedLoopedExec {
+contract Execs {
     // The base amount of percentage function
     uint256 public constant PERCENTAGE_BASE = 1 ether;
 
-    event Start_Initiate();
-    event End_Initiate();
     event LogBegin(
         address indexed handler,
         bytes4 indexed selector,
@@ -19,24 +15,6 @@ contract SimplifiedLoopedExec {
         bytes4 indexed selector,
         bytes result
     );
-
-    function approveTokens(
-        address _spender,
-        uint256 _amount,
-        address _token
-    ) external {
-        IERC20 token_to_approve = IERC20(_token);
-        token_to_approve.approve(_spender, _amount);
-    }
-
-    function initiate(address[] calldata tos, bytes[] memory datas) external {
-        // emit event to signify that the request was received
-        emit Start_Initiate();
-        // loop over contract addresses and execute the desired function call
-        _execs(tos, datas);
-        // emit event to signify end of request on this chain
-        emit End_Initiate();
-    }
 
     /**
      * @notice The execution phase.
