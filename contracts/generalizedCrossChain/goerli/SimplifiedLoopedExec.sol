@@ -29,7 +29,7 @@ contract SimplifiedLoopedExec {
         token_to_approve.approve(_spender, _amount);
     }
 
-    function initiate(address[] calldata tos, bytes[] memory datas) external {
+    function initiate(address[] calldata tos, bytes[] memory datas) external payable{
         // emit event to signify that the request was received
         emit Start_Initiate();
         // loop over contract addresses and execute the desired function call
@@ -165,7 +165,7 @@ contract SimplifiedLoopedExec {
         }
 
         if (!success) {
-            if (result.length < 68) revert("_exec");
+            if (result.length < 68) revert("_exec failure");
             assembly {
                 result := add(result, 0x04)
             }

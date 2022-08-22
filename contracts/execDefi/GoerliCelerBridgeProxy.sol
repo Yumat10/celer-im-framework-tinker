@@ -4,7 +4,7 @@ pragma solidity 0.8.9;
 import "./GoerliCelerBridge.sol";
 
 contract GoerliCelerBridgeProxy {
-    address private goerli_celer_birdge_address;
+    address payable public goerli_celer_bridge_address;
     address private immutable OWNER_ADDRESS;
 
     modifier onlyOwner() {
@@ -12,8 +12,8 @@ contract GoerliCelerBridgeProxy {
         _;
     }
 
-    constructor(address _goerli_celer_birdge_address) {
-        goerli_celer_birdge_address = _goerli_celer_birdge_address;
+    constructor(address _goerli_celer_bridge_address) {
+        goerli_celer_bridge_address = payable(_goerli_celer_bridge_address);
         OWNER_ADDRESS = msg.sender;
     }
 
@@ -21,28 +21,30 @@ contract GoerliCelerBridgeProxy {
         external
         onlyOwner
     {
-        goerli_celer_birdge_address = _new_address;
+        goerli_celer_bridge_address = payable(_new_address);
     }
 
-    function goerliToFantomTestnetBridgeProxy(
-        address _receiver, // destination contract address
-        address _token, // the input token
-        uint256 _amount, // the input token amount,
-        address originalAddress,
-        address[] calldata tos,
-        bytes[] memory datas,
-        uint256 _value
-    ) public payable {
-        GoerliCelerBridge bridge = GoerliCelerBridge(
-            goerli_celer_birdge_address
-        );
-        bridge.goerliToFantomTestnetBridge{value: _value}(
-            _receiver,
-            _token,
-            _amount,
-            originalAddress,
-            tos,
-            datas
-        );
-    }
+    // function goerliToFantomTestnetBridgeProxy(
+    //     address _receiver, // destination contract address
+    //     address _token, // the input token
+    //     uint256 _amount, // the input token amount,
+    //     address originalAddress,
+    //     address[] calldata tos,
+    //     bytes[] memory datas,
+    //     uint256 _value
+    // ) public {
+    //     GoerliCelerBridge bridge = GoerliCelerBridge(
+    //         goerli_celer_bridge_address
+    //     );
+    //     bridge.goerliToFantomTestnetBridge{value: _value}(
+    //         _receiver,
+    //         _token,
+    //         _amount,
+    //         originalAddress,
+    //         tos,
+    //         datas
+    //     );
+    // }
+
+    receive() external payable {} 
 }

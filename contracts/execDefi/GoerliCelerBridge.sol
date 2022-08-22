@@ -23,14 +23,17 @@ contract GoerliCelerBridge {
 
     uint64 nonce;
     address messageBus;
+    address immutable GOERLI_CELER_BRIDGE;
 
     event test_event(uint256);
+    event goerli_fantom_testnet_bridge(address indexed originalAddress, address indexed contract_address, address message_bus, uint256 value);
 
     constructor(address _messageBus) {
         messageBus = _messageBus;
+        GOERLI_CELER_BRIDGE = address(this);
     }
 
-    function testFunc(uint256 _testValue) external payable {
+    function testFunc(uint256 _testValue) external {
         emit test_event(_testValue);
     }
 
@@ -38,6 +41,7 @@ contract GoerliCelerBridge {
         address _receiver, // destination contract address
         address _token, // the input token
         uint256 _amount, // the input token amount,
+        address _message_bus,
         address originalAddress,
         address[] calldata tos,
         bytes[] memory datas
@@ -70,8 +74,12 @@ contract GoerliCelerBridge {
             1000000, // 100% Slippage since testnet pools tend to be imbalanced
             message,
             MsgDataTypes.BridgeSendType.Liquidity, // Pool-based liquidity bridge,
-            messageBus,
+            _message_bus,
             msg.value
         );
+
+        emit goerli_fantom_testnet_bridge(originalAddress, address(this), messageBus, msg.value);
     }
+
+    receive() external payable {} 
 }

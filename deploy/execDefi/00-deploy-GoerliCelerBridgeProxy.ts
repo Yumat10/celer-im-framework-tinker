@@ -1,9 +1,7 @@
 import { DeployFunction } from "hardhat-deploy/dist/types"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { GOERLI_BRIDGE_CONTRACT_ADDRESS } from "../../scripts/execDefi/execDefiConstants"
 import { verify } from "../../utils/verify"
-
-const GOERLI_BRIDGE_CONTRACT_ADDRESS =
-    "0x75d00Ba4fa6eeE43B1909D6e1833651Aa2A50761"
 
 const deployGoerliCelerBridgeProxy: DeployFunction = async function (
     hre: HardhatRuntimeEnvironment

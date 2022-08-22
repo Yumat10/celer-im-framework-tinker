@@ -11,6 +11,7 @@ import {
     GOERLI_BRIDGE_CONTRACT_ADDRESS,
     SIMPLIFIED_LOOPED_EXEC_CONTRACT_ADDRESS,
     GOERLI_BRIDGE_PROXY_CONTRACT_ADDRESS,
+    GOERLI_MESSAGE_BUS_CONTRACT_ADDRESS,
 } from "./execDefiConstants"
 
 async function main() {
@@ -98,12 +99,21 @@ async function main() {
 
     console.log("Encoding functions to be called by Goerli execs()...")
 
+
+    const tempABI = ["function setGoerliCelerBridgeAddress(address _new_address)"]
+    const tempIface = new ethers.utils.Interface(tempABI);
+    const tempEncoded = tempIface.encodeFunctionData("setGoerliCelerBridgeAddress", 
+        [
+            GOERLI_BRIDGE_CONTRACT_ADDRESS
+        ])
     // Encode "Bridge contract"
-    const goerliBridgeProxyABI = [
-        "function goerliToFantomTestnetBridgeProxy(address _receiver,  address _token,  uint256 _amount,  address originalAddress, address[] calldata tos, bytes[] memory datas, uint256 _value)",
+
+    // Bridge
+    const goerliBridgeABI = [
+        "function goerliToFantomTestnetBridge(address _receiver, address _token, uint256 _amount, address _message_bus, address originalAddress, address[] calldata tos, bytes[] memory datas)",
     ]
-    const goerliBridgeProxyIface = new ethers.utils.Interface(
-        goerliBridgeProxyABI
+    const goerliBridgeIface = new ethers.utils.Interface(
+        goerliBridgeABI
     )
     const tosOnFantomTestnet = [
         FANTOM_TESTNET_BRIDGE_CONTRACT_ADDRESS,
@@ -117,26 +127,41 @@ async function main() {
         spookyswapSwapTUSDCEncoded,
         unboundAddLiquidityEncoded,
     ]
-    const goerliBridgeProxyFuncEncoded =
-        goerliBridgeProxyIface.encodeFunctionData(
-            "goerliToFantomTestnetBridgeProxy",
+    const goerliBridgeFuncEncoded =
+        goerliBridgeIface.encodeFunctionData(
+            "goerliToFantomTestnetBridge",
             [
                 FANTOM_TESTNET_BRIDGE_CONTRACT_ADDRESS,
                 USDT_TOKEN_ADDRESS,
                 USDT_TOKEN_AMOUNT,
+                GOERLI_MESSAGE_BUS_CONTRACT_ADDRESS,
                 deployer,
                 tosOnFantomTestnet,
                 datasOnFantomTestnet,
-                ethers.utils.parseEther("0.001"),
             ]
         )
 
-    // const goerliBridgeTestFuncABI = ["function testFunc(uint256 _testValue)"]
-    // const goerliBridgeTestFuncIface = new ethers.utils.Interface(
-    //     goerliBridgeTestFuncABI
-    // )
-    // const goerliBridgeTestFuncEncoded =
-    //     goerliBridgeTestFuncIface.encodeFunctionData("testFunc", [51])
+// // Bridge proxy
+// const goerliBridgeProxyABI = [
+//     "function goerliToFantomTestnetBridgeProxy(address _receiver, address _token, uint256 _amount, address originalAddress, address[] calldata tos, bytes[] memory datas, uint256 _value)",
+// ]
+// const goerliBridgeProxyIface = new ethers.utils.Interface(
+//     goerliBridgeProxyABI
+// )
+// const goerliBridgeProxyFuncEncoded =
+//     goerliBridgeProxyIface.encodeFunctionData(
+//         "goerliToFantomTestnetBridgeProxy",
+//         [
+//             FANTOM_TESTNET_BRIDGE_CONTRACT_ADDRESS,
+//             USDT_TOKEN_ADDRESS,
+//             USDT_TOKEN_AMOUNT,
+//             deployer,
+//             tosOnFantomTestnet,
+//             datasOnFantomTestnet,
+//             ethers.utils.parseEther("0.001"),
+//         ]
+//     )
+
 
     console.log("Encoded functions to be called by Goerli execs()!")
 
@@ -148,27 +173,36 @@ async function main() {
     )
 
     // Approve USDT transfer
+    console.log("USDT approval...")
+    const approvalExecsTx = await USDTContract.approve(
+        SIMPLIFIED_LOOPED_EXEC_CONTRACT_ADDRESS,
+        USDT_TOKEN_AMOUNT
+    )
+    console.log("Sent USDT approval...", approvalExecsTx.hash)
+    await approvalExecsTx.wait(2)
+    console.log("Approved USDT token transfer on behalf of user")
+
     // console.log("USDT approval...")
-    // const approvalTx = await USDTContract.approve(
+    // const approvalBridgeTx = await USDTContract.approve(
     //     GOERLI_BRIDGE_CONTRACT_ADDRESS,
     //     USDT_TOKEN_AMOUNT
     // )
-    // console.log("Sent USDT approval...", approvalTx.hash)
-    // await approvalTx.wait(2)
+    // console.log("Sent USDT approval...", approvalBridgeTx.hash)
+    // await approvalBridgeTx.wait(2)
     // console.log("Approved USDT token transfer on behalf of user")
 
-    // Send ETH to Goerli bridge proxy
-    console.log("Sending eth to Goerli bridge proxy...")
-    const deployerSigner = await ethers.getSigner(deployer)
-    const sendETHResponse = await deployerSigner.sendTransaction({
-        to: GOERLI_BRIDGE_PROXY_CONTRACT_ADDRESS,
-        value: ethers.utils.parseEther("0.0015"),
-        gasLimit: 300000,
-        gasPrice: 2000000,
-    })
-    console.log("Sent tx: ", sendETHResponse.hash)
-    await sendETHResponse.wait(2)
-    console.log("Sent eth to Goerli bridge proxy")
+    // // Send ETH to Goerli bridge
+    // console.log("Sending eth to Goerli bridge ...")
+    // const deployerSigner = await ethers.getSigner(deployer)
+    // const sendETHResponse = await deployerSigner.sendTransaction({
+    //     to: GOERLI_BRIDGE_CONTRACT_ADDRESS,
+    //     value: ethers.utils.parseEther("0.002"),
+    //     gasLimit: 300000,
+    //     gasPrice: 2000000,
+    // })
+    // console.log("Sent tx: ", sendETHResponse.hash)
+    // await sendETHResponse.wait(2)
+    // console.log("Sent eth to Goerli bridge ")
 
     // Get SimplifiedLoopedExec contract
     const simplifiedLoopedExec: SimplifiedLoopedExec =
@@ -180,14 +214,12 @@ async function main() {
 
     // Call initiate function to kick start execs process
     console.log("Initiate looped exec call on Goerli")
-    const tos = [GOERLI_BRIDGE_PROXY_CONTRACT_ADDRESS]
-    const datas = [goerliBridgeProxyFuncEncoded]
-    // const datas = [goerliBridgeTestFuncEncoded]
+    const tos = [GOERLI_BRIDGE_CONTRACT_ADDRESS]
+    const datas = [goerliBridgeFuncEncoded]
 
-    console.log("tos...", tos)
-    console.log("datas...", datas)
     const simplifiedLoopedExecInitiateResponse =
         await simplifiedLoopedExec.initiate(tos, datas, {
+            value: ethers.utils.parseEther("0.002"),
             gasLimit: 300000,
             gasPrice: 2000000,
         })
@@ -197,7 +229,7 @@ async function main() {
         simplifiedLoopedExecInitiateResponse.hash
     )
 
-    await simplifiedLoopedExecInitiateResponse.wait(3)
+    await simplifiedLoopedExecInitiateResponse.wait(2)
 
     console.log("Success!")
 }

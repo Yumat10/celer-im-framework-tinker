@@ -49,11 +49,11 @@ const config: HardhatUserConfig = {
             url: GOERLI_RPC_URL,
             accounts: [PRIVATE_KEY],
         },
-        bscTestnet: {
-            chainId: 97,
-            url: BSC_TESTNET_RPC_URL,
-            accounts: [PRIVATE_KEY],
-        },
+        // bscTestnet: {
+        //     chainId: 97,
+        //     url: BSC_TESTNET_RPC_URL,
+        //     accounts: [PRIVATE_KEY],
+        // },
         ftmTestnet: {
             chainId: 4002,
             url: "https://rpc.testnet.fantom.network",

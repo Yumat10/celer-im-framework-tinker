@@ -1,5 +1,8 @@
+import { ethers } from "hardhat"
 import { DeployFunction } from "hardhat-deploy/dist/types"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { GOERLI_BRIDGE_PROXY_CONTRACT_ADDRESS } from "../../scripts/execDefi/execDefiConstants"
+import { GoerliCelerBridgeProxy } from "../../typechain-types"
 import { verify } from "../../utils/verify"
 
 // Contract Address: 0xE860D8df58B727ee6226F13c5d5ca826919DE03b
@@ -24,7 +27,7 @@ const deployGoerliCelerBridge: DeployFunction = async function (
         from: deployer,
         args,
         log: true,
-        waitConfirmations: 3,
+        waitConfirmations: 2,
     })
 
     console.log(
@@ -37,6 +40,18 @@ const deployGoerliCelerBridge: DeployFunction = async function (
     } catch (error) {
         console.log(error)
     }
+
+    // // Set the bridge contract address in the proxy
+    // console.log("Updating the bridge address in the proxy...")
+    // const goerliCelerBridgeProxy: GoerliCelerBridgeProxy = await ethers.getContractAt(
+    //     "GoerliCelerBridgeProxy",
+    //     GOERLI_BRIDGE_PROXY_CONTRACT_ADDRESS,
+    //     deployer
+    // )
+    // const setBridgeAddressResponse = await goerliCelerBridgeProxy.setGoerliCelerBridgeAddress(goerliCelerBridgeDeployResponse.address);
+    // console.log("Sent update tx...", setBridgeAddressResponse.hash)
+    // await setBridgeAddressResponse.wait(2)
+    // console.log("Successfully updated bridge contract address")
 }
 
 export default deployGoerliCelerBridge
