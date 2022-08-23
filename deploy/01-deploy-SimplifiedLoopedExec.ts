@@ -1,6 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/dist/types"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
-import { verify } from "../../../utils/verify"
+import { verify } from "../utils/verify"
 
 const deploySimplifiedLoopedExec: DeployFunction = async function (
     hre: HardhatRuntimeEnvironment

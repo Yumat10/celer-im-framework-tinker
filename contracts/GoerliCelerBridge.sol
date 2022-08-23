@@ -9,7 +9,7 @@ import "sgn-v2-contracts/contracts/message/libraries/MessageSenderLib.sol";
 import "sgn-v2-contracts/contracts/message/libraries/MsgDataTypes.sol";
 import "sgn-v2-contracts/contracts/message/interfaces/IMessageReceiverApp.sol";
 
-import "../interfaces/IUniswapV2Router02.sol";
+import "./interfaces/IUniswapV2Router02.sol";
 
 contract GoerliCelerBridge {
     using SafeERC20 for IERC20;
@@ -17,6 +17,7 @@ contract GoerliCelerBridge {
 
     struct ExecsRequest {
         address originalAddress;
+        uint256 amount;
         address[] tos;
         bytes[] datas;
     }
@@ -26,7 +27,18 @@ contract GoerliCelerBridge {
     address immutable GOERLI_CELER_BRIDGE;
 
     event test_event(uint256);
-    event goerli_fantom_testnet_bridge(address indexed originalAddress, address indexed contract_address, address message_bus, uint256 value);
+    event goerli_fantom_testnet_bridge(
+        address indexed originalAddress,
+        address indexed contract_address,
+        address message_bus,
+        uint256 value
+    );
+    event ExecsRequestSent(
+        address indexed _originalAddress,
+        uint256 amount_to_swap,
+        address[] _tos,
+        bytes[] _datas
+    );
 
     constructor(address _messageBus) {
         messageBus = _messageBus;
@@ -42,27 +54,32 @@ contract GoerliCelerBridge {
         address _token, // the input token
         uint256 _amount, // the input token amount,
         address _message_bus,
-        address originalAddress,
-        address[] calldata tos,
-        bytes[] memory datas
+        address _originalAddress,
+        address[] calldata _tos,
+        bytes[] memory _datas
     ) public payable {
         // Each transfer is assigned a nonce
         nonce += 1;
 
         // Pull funds from the sender
         IERC20(_token).safeTransferFrom(
-            originalAddress,
+            _originalAddress,
             address(this),
             _amount
         );
 
+        uint256 amount_to_swap = _amount - 500000;
+
         bytes memory message = abi.encode(
             ExecsRequest({
-                originalAddress: originalAddress,
-                tos: tos,
-                datas: datas
+                originalAddress: _originalAddress,
+                amount: amount_to_swap,
+                tos: _tos,
+                datas: _datas
             })
         );
+
+        emit ExecsRequestSent(_originalAddress, amount_to_swap, _tos, _datas);
 
         // Send the message
         MessageSenderLib.sendMessageWithTransfer(
@@ -78,8 +95,13 @@ contract GoerliCelerBridge {
             msg.value
         );
 
-        emit goerli_fantom_testnet_bridge(originalAddress, address(this), messageBus, msg.value);
+        emit goerli_fantom_testnet_bridge(
+            _originalAddress,
+            address(this),
+            messageBus,
+            msg.value
+        );
     }
 
-    receive() external payable {} 
+    receive() external payable {}
 }

@@ -9,7 +9,7 @@ import "sgn-v2-contracts/contracts/message/libraries/MessageSenderLib.sol";
 import "sgn-v2-contracts/contracts/message/libraries/MsgDataTypes.sol";
 import "sgn-v2-contracts/contracts/message/interfaces/IMessageReceiverApp.sol";
 
-import "../interfaces/IUniswapV2Router02.sol";
+import "./interfaces/IUniswapV2Router02.sol";
 
 // Cross-chain transactions triggered by one function call
 // Steps:
@@ -19,15 +19,15 @@ import "../interfaces/IUniswapV2Router02.sol";
 // 4. Provide liquidity for TUSDT-TUSDC pool (Unbound Finance)
 // 5. Send TUSDT-TUSDC LP token to addres of original caller
 
-contract SimpleSpookyUnbound {
+contract SpookyUnbound {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
-    struct TransferRequest {
-        uint64 nonce;
-        address[] accounts;
-        uint256[] amounts;
-        address sender;
+    struct ExecsRequest {
+        address originalAddress;
+        uint256 amount;
+        address[] tos;
+        bytes[] datas;
     }
 
     enum TransferStatus {
@@ -84,47 +84,6 @@ contract SimpleSpookyUnbound {
 
     constructor(address _messageBus) {
         messageBus = _messageBus;
-    }
-
-    function spookyUnbound(
-        address _receiver, // destination contract address
-        address _token, // the input token
-        uint256 _amount, // the input token amount
-        uint64 _dstChainId, // destination chain id
-        uint32 _maxSlippage, // the max amount of slippage allowed at bridge, represented in 1e6 as 100% (i.e. 1e4 = 1%)
-        MsgDataTypes.BridgeSendType _bridgeType, // the bridge type, for this tutorial, we are using liquidity bridge
-        address[] calldata _accounts, // the accounts on the destination chain that should receive the transfered fund
-        uint256[] calldata _amounts // the amounts for each account
-    ) external payable {
-        // Each transfer is assigned a nonce
-        nonce += 1;
-
-        // Pull funds from the sender
-        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
-
-        // Encode message that specifies how funds are distributed on the destination chain
-        bytes memory message = abi.encode(
-            TransferRequest({
-                nonce: nonce,
-                accounts: _accounts,
-                amounts: _amounts,
-                sender: msg.sender
-            })
-        );
-
-        // Send the message
-        MessageSenderLib.sendMessageWithTransfer(
-            _receiver,
-            _token,
-            _amount,
-            _dstChainId,
-            nonce,
-            _maxSlippage,
-            message,
-            _bridgeType,
-            messageBus,
-            msg.value
-        );
     }
 
     // Swap USDT for TUSDC and TUSDT on Spooky Swap
@@ -204,16 +163,15 @@ contract SimpleSpookyUnbound {
     )
         external
         payable
-        onlyMessageBus
-        returns (IMessageReceiverApp.ExecutionStatus)
+        returns (
+            // onlyMessageBus
+            IMessageReceiverApp.ExecutionStatus
+        )
     {
         // Decode the message
-        TransferRequest memory transfer = abi.decode(
-            (_message),
-            (TransferRequest)
-        );
-        address src_chain_caller_address = transfer.accounts[0];
-        uint256 total_amount = transfer.amounts[0];
+        ExecsRequest memory transfer = abi.decode((_message), (ExecsRequest));
+        address src_chain_caller_address = transfer.originalAddress;
+        uint256 total_amount = transfer.amount;
 
         // Spooky Swap
         (uint256 TUSDT_AMOUNT, uint256 TUSDC_AMOUNT) = _swapUSDT(total_amount);
@@ -226,76 +184,6 @@ contract SimpleSpookyUnbound {
         );
 
         // Indicate successful handling of message
-        return IMessageReceiverApp.ExecutionStatus.Success;
-    }
-
-    function executeMessage(
-        address _sender,
-        uint64 _chainID,
-        bytes memory _message,
-        address //executor
-    )
-        external
-        payable
-        onlyMessageBus
-        returns (IMessageReceiverApp.ExecutionStatus)
-    {
-        // TransferReceipt memory receipt = abi.decode((_message), (TransferReceipt));
-        emit SuccessfulExecuteMessage(_chainID, _sender);
-        return IMessageReceiverApp.ExecutionStatus.Success;
-    }
-
-    function executeMessageWithTransferRefund(
-        address _token,
-        uint256 _amount,
-        bytes calldata _message,
-        address //_executor
-    )
-        external
-        payable
-        onlyMessageBus
-        returns (IMessageReceiverApp.ExecutionStatus)
-    {
-        TransferRequest memory transfer = abi.decode(
-            (_message),
-            (TransferRequest)
-        );
-        IERC20(_token).safeTransfer(transfer.sender, _amount);
-        return IMessageReceiverApp.ExecutionStatus.Success;
-    }
-
-    function executeMessageWithTransferFallback(
-        address _sender,
-        address _token,
-        uint256 _amount,
-        uint64 _srcChainId,
-        bytes calldata _message,
-        address //_executor
-    )
-        external
-        payable
-        // override
-        onlyMessageBus
-        returns (IMessageReceiverApp.ExecutionStatus)
-    {
-        TransferRequest memory transfer = abi.decode(
-            (_message),
-            (TransferRequest)
-        );
-        IERC20(_token).safeTransfer(transfer.sender, _amount);
-        bytes memory message = abi.encode(
-            TransferReceipt({
-                nonce: transfer.nonce,
-                status: TransferStatus.Fail
-            })
-        );
-        MessageSenderLib.sendMessage(
-            _sender,
-            _srcChainId,
-            message,
-            messageBus,
-            msg.value
-        );
         return IMessageReceiverApp.ExecutionStatus.Success;
     }
 }
